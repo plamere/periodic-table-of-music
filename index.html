@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Periodic Table of Music </title>
+<style>
+  body {
+    font-family: 'Inter', Arial, sans-serif;
+    margin: 20px;
+    background-color: #2c3e50; /* Darker background */
+    color: #ecf0f1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  h1, h2 {
+    text-align: center;
+    color: #e74c3c; /* Contrasting title color */
+  }
+  .periodic-table-container {
+    display: grid;
+    grid-template-columns: repeat(18, minmax(60px, 1fr)); /* 18 columns */
+    grid-auto-rows: minmax(60px, auto);
+    gap: 4px;
+    margin: 20px auto;
+    max-width: 1600px; /* Limit max width for very large screens */
+    width: 95%;
+  }
+  .table-cell {
+    border: 1px solid #7f8c8d;
+    padding: 5px;
+    text-align: center;
+    min-height: 60px; /* Minimum height for cells */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: #34495e; /* Darker cell background */
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    position: relative; /* For tooltip positioning */
+  }
+  .clickable-artist:hover { /* Apply hover only to clickable artists */
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    cursor: pointer;
+  }
+  .empty-cell {
+    visibility: hidden; /* Makes cell invisible but maintains layout */
+    border: none;
+    background-color: transparent;
+    box-shadow: none;
+  }
+  .group-header { /* Removed .period-header as it's not used */
+    font-weight: bold;
+    font-size: 0.7em;
+    color: #bdc3c7;
+    padding: 8px 0;
+    background-color: #1a252f;
+    border-radius: 4px;
+    display: flex; /* Added for centering */
+    justify-content: center; /* Added for centering */
+    align-items: center; /* Added for centering */
+  }
+
+  .artist-symbol {
+    font-size: 1.5em; /* Adjusted for better fit */
+    font-weight: bold;
+    color: #ecf0f1; /* White for better contrast */
+  }
+  .artist-name-full {
+    font-size: 0.6em; /* Smaller for full name */
+    display: block;
+    margin-top: 3px;
+    color: #95a5a6; /* Lighter grey for full name */
+  }
+  .unstable {
+    background-color: #f39c12; /* Orange for unstable */
+    border-color: #e67e22;
+  }
+  .unstable .artist-symbol { color: #2c3e50; }
+  .unstable .artist-name-full { color: #34495e; }
+
+  .collab {
+    background-color: #1abc9c; /* Teal for collabs */
+    border-color: #16a085;
+  }
+  .collab .artist-symbol { color: #fff; }
+  .collab .artist-name-full { color: #ecf0f1; }
+
+  /* Color coding for blocks/categories (example) */
+  .table-cell.group-1, .table-cell.group-2 { background-color: #c0392b; } /* s-block like - Foundational */
+  .table-cell.group-3, .table-cell.group-4, .table-cell.group-5, .table-cell.group-6, .table-cell.group-7, .table-cell.group-8, .table-cell.group-9, .table-cell.group-10, .table-cell.group-11, .table-cell.group-12 {
+    background-color: #2980b9; /* d-block like - Core Genres */
+  }
+  .table-cell.group-13, .table-cell.group-14, .table-cell.group-15, .table-cell.group-16, .table-cell.group-17, .table-cell.group-18 {
+    background-color: #27ae60; /* p-block like - Modern/Niche */
+  }
+  .lanthanide-series .table-cell, .actinide-series .table-cell {
+    background-color: #8e44ad; /* f-block like - Influencers/Innovators */
+  }
+  /* Ensure unstable and collab colors override block colors */
+  .table-cell.unstable { background-color: #f39c12 !important; border-color: #e67e22 !important; }
+  .table-cell.collab { background-color: #1abc9c !important; border-color: #16a085 !important; }
+
+
+  .tooltip {
+    visibility: hidden;
+    width: max-content; /* Adjust width to content */
+    max-width: 200px;
+    background-color: #222; /* Darker tooltip */
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 8px;
+    position: absolute;
+    z-index: 10;
+    bottom: 110%; /* Position above the element */
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.8em;
+    pointer-events: none; /* Allow hover on element underneath */
+  }
+  .tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #222 transparent transparent transparent;
+  }
+  .table-cell:hover .tooltip { /* Tooltip appears on hover of any table cell with a tooltip */
+    visibility: visible;
+    opacity: 1;
+  }
+  .series-label { /* Not used in current HTML, but kept for potential future use */
+    grid-column: 1 / span 2;
+    text-align: right;
+    padding-right: 10px;
+    font-weight: bold;
+    color: #e74c3c;
+    align-self: center;
+    font-size: 0.9em;
+  }
+  .lanthanide-series, .actinide-series {
+    display: grid;
+    grid-template-columns: repeat(15, minmax(60px, 1fr)); /* 15 elements for these series */
+    gap: 4px;
+    margin-top: 20px; /* Space above these series */
+    width: calc(15/18 * 95%); /* Match proportion */
+    max-width: calc(15/18 * 1600px);
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .legend {
+    margin: 30px auto;
+    padding: 20px;
+    background-color: #34495e;
+    border: 1px solid #7f8c8d;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 700px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  }
+  .legend h3 {
+    margin-top: 0;
+    color: #e74c3c;
+    text-align: center;
+    margin-bottom: 15px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 0.9em;
+  }
+  .legend-color {
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+  }
+
+  /* Modal Styles */
+  .modal-overlay {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 100; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgba(0,0,0,0.6); /* Black w/ opacity */
+    justify-content: center;
+    align-items: center;
+  }
+  .modal-content {
+    background-color: #34495e; /* Match cell background */
+    margin: auto;
+    padding: 20px;
+    border: 1px solid #7f8c8d;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 900px;
+    height: 80vh; /* Responsive height */
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+    position: relative; /* For close button positioning */
+  }
+  .modal-close-button {
+    color: #ecf0f1;
+    background-color: #e74c3c;
+    border: none;
+    padding: 8px 15px;
+    font-size: 1.2em;
+    font-weight: bold;
+    border-radius: 5px;
+    cursor: pointer;
+    align-self: flex-end; /* Position button to the right */
+    margin-bottom: 10px;
+  }
+  .modal-close-button:hover,
+  .modal-close-button:focus {
+    background-color: #c0392b;
+    text-decoration: none;
+  }
+  #wikipedia-iframe {
+    width: 100%;
+    height: 100%; /* Fill remaining space */
+    border: 1px solid #7f8c8d;
+    border-radius: 4px;
+  }
+
+
+  /* Responsive adjustments */
+  @media (max-width: 1200px) {
+    .periodic-table-container, .lanthanide-series, .actinide-series {
+      grid-template-columns: repeat(auto-fit, minmax(55px, 1fr));
+      gap: 3px;
+    }
+    .artist-symbol { font-size: 1.2em; }
+    .artist-name-full { font-size: 0.5em; }
+    .table-cell { min-height: 55px; }
+  }
+  @media (max-width: 768px) {
+    body { margin: 10px; }
+    h1 { font-size: 1.8em; }
+    .periodic-table-container, .lanthanide-series, .actinide-series {
+      grid-template-columns: repeat(auto-fit, minmax(45px, 1fr));
+      gap: 2px;
+    }
+    .artist-symbol { font-size: 1em; }
+    .artist-name-full { display: none; } /* Hide full name on very small screens */
+    .table-cell { min-height: 45px; padding: 3px; }
+    .tooltip { font-size: 0.7em; padding: 5px;}
+    .legend { width: 95%; padding: 15px;}
+    .modal-content { width: 90%; height: 75vh; padding: 15px;}
+    .modal-close-button { font-size: 1em; padding: 6px 12px;}
+  }
+  @media (max-width: 480px) {
+    .periodic-table-container, .lanthanide-series, .actinide-series {
+      grid-template-columns: repeat(auto-fit, minmax(35px, 1fr)); /* Further reduce min cell size */
+      gap: 1px;
+    }
+     .table-cell { min-height: 35px; }
+     .artist-symbol { font-size: 0.8em; }
+     .modal-content { width: 95%; height: 70vh; padding: 10px;}
+  }
+
+</style>
+</head>
+<body>
+
+<h1>The Periodic Table of Music</h1>
+<h2>Vibe coded by @plamere</h2>
+
+<div class="legend">
+  <h3>Legend</h3>
+  <div class="legend-item"><div class="legend-color" style="background-color: #c0392b;"></div> Foundational (Groups 1-2)</div>
+  <div class="legend-item"><div class="legend-color" style="background-color: #2980b9;"></div> Core Genres (Groups 3-12)</div>
+  <div class="legend-item"><div class="legend-color" style="background-color: #27ae60;"></div> Modern/Niche (Groups 13-18)</div>
+  <div class="legend-item"><div class="legend-color" style="background-color: #8e44ad;"></div> Influencers/Innovators (Series)</div>
+  <hr style="border-color: #7f8c8d; margin: 10px 0;">
+  <div class="legend-item"><div class="legend-color unstable" style="background-color: #f39c12;"></div> One-Hit Wonder / Unique Impact</div>
+  <div class="legend-item"><div class="legend-color collab" style="background-color: #1abc9c;"></div> Collaboration / Supergroup</div>
+</div>
+
+<div class="periodic-table-container">
+  <div class="group-header">1</div> <div class="group-header">2</div> <div class="group-header">3</div>
+  <div class="group-header">4</div> <div class="group-header">5</div> <div class="group-header">6</div>
+  <div class="group-header">7</div> <div class="group-header">8</div> <div class="group-header">9</div>
+  <div class="group-header">10</div> <div class="group-header">11</div> <div class="group-header">12</div>
+  <div class="group-header">13</div> <div class="group-header">14</div> <div class="group-header">15</div>
+  <div class="group-header">16</div> <div class="group-header">17</div> <div class="group-header">18</div>
+
+  <div class="table-cell group-1 clickable-artist" data-artist-search-term="Robert_Johnson">
+    <span class="artist-symbol">Rj</span><span class="artist-name-full">R. Johnson</span>
+    <span class="tooltip">Robert Johnson (Early Blues)</span>
+  </div>
+  <div class="empty-cell" style="grid-column: span 16;"></div>
+  <div class="table-cell group-18 clickable-artist" data-artist-search-term="Louis_Armstrong">
+    <span class="artist-symbol">La</span><span class="artist-name-full">L. Armstrong</span>
+    <span class="tooltip">Louis Armstrong (Early Jazz Innovator)</span>
+  </div>
+
+  <div class="table-cell group-1 clickable-artist" data-artist-search-term="Hank_Williams">
+    <span class="artist-symbol">Hw</span><span class="artist-name-full">H. Williams</span>
+    <span class="tooltip">Hank Williams (Country Pioneer)</span>
+  </div>
+  <div class="table-cell group-2 clickable-artist" data-artist-search-term="Frank_Sinatra">
+    <span class="artist-symbol">Fs</span><span class="artist-name-full">F. Sinatra</span>
+    <span class="tooltip">Frank Sinatra (Traditional Pop)</span>
+  </div>
+  <div class="empty-cell" style="grid-column: span 10;"></div>
+  <div class="table-cell group-13 clickable-artist" data-artist-search-term="Elvis_Presley">
+    <span class="artist-symbol">Ep</span><span class="artist-name-full">E. Presley</span>
+    <span class="tooltip">Elvis Presley (Rock & Roll King)</span>
+  </div>
+  <div class="table-cell group-14 clickable-artist" data-artist-search-term="Chuck_Berry">
+    <span class="artist-symbol">Cb</span><span class="artist-name-full">C. Berry</span>
+    <span class="tooltip">Chuck Berry (Rock & Roll Architect)</span>
+  </div>
+  <div class="table-cell group-15 clickable-artist" data-artist-search-term="Little_Richard">
+    <span class="artist-symbol">Lr</span><span class="artist-name-full">L. Richard</span>
+    <span class="tooltip">Little Richard (Rock & Roll Energy)</span>
+  </div>
+  <div class="table-cell group-16 clickable-artist" data-artist-search-term="Buddy_Holly">
+    <span class="artist-symbol">Bh</span><span class="artist-name-full">B. Holly</span>
+    <span class="tooltip">Buddy Holly (Singer-Songwriter Rock)</span>
+  </div>
+  <div class="table-cell group-17 clickable-artist" data-artist-search-term="Ray_Charles">
+    <span class="artist-symbol">Rc</span><span class="artist-name-full">R. Charles</span>
+    <span class="tooltip">Ray Charles (Soul Pioneer)</span>
+  </div>
+  <div class="table-cell group-18 collab clickable-artist" data-artist-search-term="Les_Paul_and_Mary_Ford">
+    <span class="artist-symbol">LPF</span><span class="artist-name-full">Les Paul & Mary Ford</span>
+    <span class="tooltip">Les Paul & Mary Ford (Early Innovators Collab)</span>
+  </div>
+
+  <div class="table-cell group-1 clickable-artist" data-artist-search-term="B.B._King">
+    <span class="artist-symbol">Bk</span><span class="artist-name-full">B.B. King</span>
+    <span class="tooltip">B.B. King (Blues Master)</span>
+  </div>
+  <div class="table-cell group-2 clickable-artist" data-artist-search-term="Miles_Davis">
+    <span class="artist-symbol">Md</span><span class="artist-name-full">M. Davis</span>
+    <span class="tooltip">Miles Davis (Jazz Evolution)</span>
+  </div>
+  <div class="empty-cell" style="grid-column: span 10;"></div>
+  <div class="table-cell group-13 clickable-artist" data-artist-search-term="The_Beatles">
+    <span class="artist-symbol">B</span><span class="artist-name-full">Beatles</span>
+    <span class="tooltip">The Beatles (Pop/Rock Revolution)</span>
+  </div>
+  <div class="table-cell group-14 clickable-artist" data-artist-search-term="The_Rolling_Stones">
+    <span class="artist-symbol">Rs</span><span class="artist-name-full">Rolling Stones</span>
+    <span class="tooltip">The Rolling Stones (Rock & Roll Endurance)</span>
+  </div>
+  <div class="table-cell group-15 clickable-artist" data-artist-search-term="Aretha_Franklin">
+    <span class="artist-symbol">Af</span><span class="artist-name-full">A. Franklin</span>
+    <span class="tooltip">Aretha Franklin (Queen of Soul)</span>
+  </div>
+  <div class="table-cell group-16 clickable-artist" data-artist-search-term="James_Brown">
+    <span class="artist-symbol">Jb</span><span class="artist-name-full">J. Brown</span>
+    <span class="tooltip">James Brown (Godfather of Soul/Funk)</span>
+  </div>
+  <div class="table-cell group-17 clickable-artist" data-artist-search-term="Stevie_Wonder">
+    <span class="artist-symbol">Sw</span><span class="artist-name-full">S. Wonder</span>
+    <span class="tooltip">Stevie Wonder (Musical Genius)</span>
+  </div>
+  <div class="table-cell group-18 clickable-artist" data-artist-search-term="Bob_Marley">
+    <span class="artist-symbol">Bm</span><span class="artist-name-full">B. Marley</span>
+    <span class="tooltip">Bob Marley (Reggae Icon)</span>
+  </div>
+
+  <div class="table-cell group-1 clickable-artist" data-artist-search-term="John_Lee_Hooker">
+    <span class="artist-symbol">Jlh</span><span class="artist-name-full">JL Hooker</span>
+    <span class="tooltip">John Lee Hooker (Blues Legend)</span>
+  </div>
+  <div class="table-cell group-2 clickable-artist" data-artist-search-term="Johnny_Cash">
+    <span class="artist-symbol">Jc</span><span class="artist-name-full">J. Cash</span>
+    <span class="tooltip">Johnny Cash (Country Iconoclast)</span>
+  </div>
+  <div class="table-cell group-3 clickable-artist" data-artist-search-term="Led_Zeppelin">
+    <span class="artist-symbol">Lz</span><span class="artist-name-full">Led Zep</span>
+    <span class="tooltip">Led Zeppelin (Hard Rock Gods)</span>
+  </div>
+  <div class="table-cell group-4 clickable-artist" data-artist-search-term="Pink_Floyd">
+    <span class="artist-symbol">Pf</span><span class="artist-name-full">Pink Floyd</span>
+    <span class="tooltip">Pink Floyd (Progressive Rock)</span>
+  </div>
+  <div class="table-cell group-5 clickable-artist" data-artist-search-term="Queen_(band)">
+    <span class="artist-symbol">Q</span><span class="artist-name-full">Queen</span>
+    <span class="tooltip">Queen (Rock Royalty)</span>
+  </div>
+  <div class="table-cell group-6 clickable-artist" data-artist-search-term="Earth,_Wind_&_Fire">
+    <span class="artist-symbol">Ewf</span><span class="artist-name-full">EW&F</span>
+    <span class="tooltip">Earth, Wind & Fire (Funk/Soul Ensemble)</span>
+  </div>
+  <div class="table-cell group-7 clickable-artist" data-artist-search-term="Donna_Summer">
+    <span class="artist-symbol">Ds</span><span class="artist-name-full">D. Summer</span>
+    <span class="tooltip">Donna Summer (Queen of Disco)</span>
+  </div>
+  <div class="table-cell group-8 clickable-artist" data-artist-search-term="KC_and_the_Sunshine_Band">
+    <span class="artist-symbol">Kc</span><span class="artist-name-full">KC & Sunshine</span>
+    <span class="tooltip">KC & The Sunshine Band (Disco Funk)</span>
+  </div>
+  <div class="table-cell group-9 clickable-artist" data-artist-search-term="ABBA">
+    <span class="artist-symbol">Ab</span><span class="artist-name-full">ABBA</span>
+    <span class="tooltip">ABBA (Pop Perfection)</span>
+  </div>
+  <div class="table-cell group-10 clickable-artist" data-artist-search-term="Parliament-Funkadelic">
+    <span class="artist-symbol">Pfunk</span><span class="artist-name-full">Parliament</span>
+    <span class="tooltip">Parliament/Funkadelic (P-Funk)</span>
+  </div>
+  <div class="table-cell group-11 clickable-artist" data-artist-search-term="Ramones">
+    <span class="artist-symbol">Ra</span><span class="artist-name-full">Ramones</span>
+    <span class="tooltip">Ramones (Punk Pioneers)</span>
+  </div>
+  <div class="table-cell group-12 clickable-artist" data-artist-search-term="Black_Sabbath">
+    <span class="artist-symbol">Bs</span><span class="artist-name-full">Black Sabbath</span>
+    <span class="tooltip">Black Sabbath (Heavy Metal Originators)</span>
+  </div>
+  <div class="table-cell group-13 clickable-artist" data-artist-search-term="The_Sugarhill_Gang">
+    <span class="artist-symbol">Sg</span><span class="artist-name-full">Sugarhill</span>
+    <span class="tooltip">Sugarhill Gang (Early Hip Hop)</span>
+  </div>
+  <div class="table-cell group-14 clickable-artist" data-artist-search-term="Kraftwerk">
+    <span class="artist-symbol">Kw</span><span class="artist-name-full">Kraftwerk</span>
+    <span class="tooltip">Kraftwerk (Electronic Pioneers)</span>
+  </div>
+  <div class="table-cell group-15 unstable clickable-artist" data-artist-search-term="Sex_Pistols">
+    <span class="artist-symbol">SexP</span><span class="artist-name-full">Sex Pistols</span> <span class="tooltip">Sex Pistols (Punk Impact - Unstable)</span>
+  </div>
+  <div class="table-cell group-16 clickable-artist" data-artist-search-term="The_Clash">
+    <span class="artist-symbol">Cl</span><span class="artist-name-full">The Clash</span>
+    <span class="tooltip">The Clash (Punk Rock Icons)</span>
+  </div>
+  <div class="table-cell group-17 clickable-artist" data-artist-search-term="Joni_Mitchell">
+    <span class="artist-symbol">Jm</span><span class="artist-name-full">J. Mitchell</span>
+    <span class="tooltip">Joni Mitchell (Singer-Songwriter)</span>
+  </div>
+  <div class="table-cell group-18 clickable-artist" data-artist-search-term="Elton_John">
+    <span class="artist-symbol">Ej</span><span class="artist-name-full">E. John</span>
+    <span class="tooltip">Elton John (Pop/Rock Legend)</span>
+  </div>
+
+  <div class="table-cell group-1 clickable-artist" data-artist-search-term="Stevie_Ray_Vaughan">
+    <span class="artist-symbol">Srv</span><span class="artist-name-full">SRV</span>
+    <span class="tooltip">Stevie Ray Vaughan (Blues Revival)</span>
+  </div>
+  <div class="table-cell group-2 clickable-artist" data-artist-search-term="Willie_Nelson">
+    <span class="artist-symbol">Wn</span><span class="artist-name-full">W. Nelson</span>
+    <span class="tooltip">Willie Nelson (Outlaw Country)</span>
+  </div>
+  <div class="table-cell group-3 clickable-artist" data-artist-search-term="U2">
+    <span class="artist-symbol">U2</span><span class="artist-name-full">U2</span>
+    <span class="tooltip">U2 (Arena Rock)</span>
+  </div>
+  <div class="table-cell group-4 clickable-artist" data-artist-search-term="The_Police_(band)">
+    <span class="artist-symbol">Pol</span><span class="artist-name-full">Police</span>
+    <span class="tooltip">The Police (New Wave/Rock)</span>
+  </div>
+  <div class="table-cell group-5 clickable-artist" data-artist-search-term="Prince_(musician)">
+    <span class="artist-symbol">P</span><span class="artist-name-full">Prince</span>
+    <span class="tooltip">Prince (Musical Polymath)</span>
+  </div>
+  <div class="table-cell group-6 clickable-artist" data-artist-search-term="Michael_Jackson">
+    <span class="artist-symbol">Mj</span><span class="artist-name-full">M. Jackson</span>
+    <span class="tooltip">Michael Jackson (King of Pop)</span>
+  </div>
+  <div class="table-cell group-7 clickable-artist" data-artist-search-term="Madonna">
+    <span class="artist-symbol">M</span><span class="artist-name-full">Madonna</span>
+    <span class="tooltip">Madonna (Queen of Pop)</span>
+  </div>
+  <div class="table-cell group-8 clickable-artist" data-artist-search-term="Whitney_Houston">
+    <span class="artist-symbol">Wh</span><span class="artist-name-full">W. Houston</span>
+    <span class="tooltip">Whitney Houston (Vocal Powerhouse)</span>
+  </div>
+  <div class="table-cell group-9 clickable-artist" data-artist-search-term="Janet_Jackson">
+    <span class="artist-symbol">Jj</span><span class="artist-name-full">J. Jackson</span>
+    <span class="tooltip">Janet Jackson (Pop/R&B Innovator)</span>
+  </div>
+  <div class="table-cell group-10 collab clickable-artist" data-artist-search-term="Run-D.M.C."> <span class="artist-symbol">RDMCA</span><span class="artist-name-full">Run DMC & Aerosmith</span>
+    <span class="tooltip">Walk This Way (Collab)</span>
+  </div>
+  <div class="table-cell group-11 clickable-artist" data-artist-search-term="Depeche_Mode">
+    <span class="artist-symbol">Dm</span><span class="artist-name-full">Depeche Mode</span>
+    <span class="tooltip">Depeche Mode (Synth Pop Icons)</span>
+  </div>
+  <div class="table-cell group-12 clickable-artist" data-artist-search-term="Guns_N'_Roses">
+    <span class="artist-symbol">GnR</span><span class="artist-name-full">Guns N' Roses</span>
+    <span class="tooltip">Guns N' Roses (Hard Rock)</span>
+  </div>
+  <div class="table-cell group-13 clickable-artist" data-artist-search-term="Public_Enemy_(group)">
+    <span class="artist-symbol">Pe</span><span class="artist-name-full">Public Enemy</span>
+    <span class="tooltip">Public Enemy (Conscious Hip Hop)</span>
+  </div>
+  <div class="table-cell group-14 clickable-artist" data-artist-search-term="New_Order_(band)">
+    <span class="artist-symbol">No</span><span class="artist-name-full">New Order</span>
+    <span class="tooltip">New Order (Post-Punk/Electronic)</span>
+  </div>
+  <div class="table-cell group-15 clickable-artist" data-artist-search-term="R.E.M.">
+    <span class="artist-symbol">REM</span><span class="artist-name-full">R.E.M.</span>
+    <span class="tooltip">R.E.M. (Alternative Rock Pioneers)</span>
+  </div>
+  <div class="table-cell group-16 clickable-artist" data-artist-search-term="The_Smiths">
+    <span class="artist-symbol">Smi</span><span class="artist-name-full">The Smiths</span>
+    <span class="tooltip">The Smiths (Indie Icons)</span>
+  </div>
+  <div class="table-cell group-17 unstable clickable-artist" data-artist-search-term="A-ha">
+    <span class="artist-symbol">Aha</span><span class="artist-name-full">A-ha</span>
+    <span class="tooltip">A-ha (Take On Me - One Hit Wonder)</span>
+  </div>
+  <div class="table-cell group-18 clickable-artist" data-artist-search-term="Sade_(band)">
+    <span class="artist-symbol">Sde</span><span class="artist-name-full">Sade</span>
+    <span class="tooltip">Sade (Smooth Jazz/Soul)</span>
+  </div>
+
+  <div class="table-cell group-1 clickable-artist" data-artist-search-term="Garth_Brooks">
+    <span class="artist-symbol">Gb</span><span class="artist-name-full">G. Brooks</span>
+    <span class="tooltip">Garth Brooks (Country Megastar)</span>
+  </div>
+  <div class="table-cell group-2 clickable-artist" data-artist-search-term="Shania_Twain">
+    <span class="artist-symbol">St</span><span class="artist-name-full">S. Twain</span>
+    <span class="tooltip">Shania Twain (Country Pop Crossover)</span>
+  </div>
+  <div class="table-cell group-3 clickable-artist" data-artist-search-term="Nirvana_(band)">
+    <span class="artist-symbol">N</span><span class="artist-name-full">Nirvana</span>
+    <span class="tooltip">Nirvana (Grunge Revolution)</span>
+  </div>
+  <div class="table-cell group-4 clickable-artist" data-artist-search-term="Pearl_Jam">
+    <span class="artist-symbol">Pj</span><span class="artist-name-full">Pearl Jam</span>
+    <span class="tooltip">Pearl Jam (Grunge/Alternative)</span>
+  </div>
+  <div class="table-cell group-5 clickable-artist" data-artist-search-term="Red_Hot_Chili_Peppers">
+    <span class="artist-symbol">Rhcp</span><span class="artist-name-full">RHCP</span>
+    <span class="tooltip">Red Hot Chili Peppers (Funk Rock)</span>
+  </div>
+  <div class="table-cell group-6 clickable-artist" data-artist-search-term="Mariah_Carey">
+    <span class="artist-symbol">Mc</span><span class="artist-name-full">M. Carey</span>
+    <span class="tooltip">Mariah Carey (Pop/R&B Diva)</span>
+  </div>
+  <div class="table-cell group-7 clickable-artist" data-artist-search-term="TLC_(group)">
+    <span class="artist-symbol">Tlc</span><span class="artist-name-full">TLC</span>
+    <span class="tooltip">TLC (R&B/Hip Hop Group)</span>
+  </div>
+  <div class="table-cell group-8 clickable-artist" data-artist-search-term="Britney_Spears">
+    <span class="artist-symbol">Bs</span><span class="artist-name-full">B. Spears</span>
+    <span class="tooltip">Britney Spears (Pop Princess)</span>
+  </div>
+  <div class="table-cell group-9 unstable clickable-artist" data-artist-search-term="Spice_Girls">
+    <span class="artist-symbol">SpG</span><span class="artist-name-full">Spice Girls</span>
+    <span class="tooltip">Spice Girls (Pop Phenomenon - Unstable)</span>
+  </div>
+  <div class="table-cell group-10 clickable-artist" data-artist-search-term="Snoop_Dogg">
+    <span class="artist-symbol">Sd</span><span class="artist-name-full">S. Dogg</span>
+    <span class="tooltip">Snoop Dogg (Hip Hop Icon)</span>
+  </div>
+  <div class="table-cell group-11 clickable-artist" data-artist-search-term="A_Tribe_Called_Quest">
+    <span class="artist-symbol">Atcq</span><span class="artist-name-full">ATCQ</span>
+    <span class="tooltip">A Tribe Called Quest (Jazz Rap)</span>
+  </div>
+  <div class="table-cell group-12 clickable-artist" data-artist-search-term="Metallica">
+    <span class="artist-symbol">Mt</span><span class="artist-name-full">Metallica</span>
+    <span class="tooltip">Metallica (Thrash Metal Giants)</span>
+  </div>
+  <div class="table-cell group-13 clickable-artist" data-artist-search-term="Tupac_Shakur">
+    <span class="artist-symbol">Tp</span><span class="artist-name-full">2Pac</span>
+    <span class="tooltip">2Pac (Hip Hop Legend)</span>
+  </div>
+  <div class="table-cell group-14 clickable-artist" data-artist-search-term="Daft_Punk">
+    <span class="artist-symbol">Dp</span><span class="artist-name-full">Daft Punk</span>
+    <span class="tooltip">Daft Punk (Electronic Duo)</span>
+  </div>
+  <div class="table-cell group-15 clickable-artist" data-artist-search-term="Radiohead">
+    <span class="artist-symbol">Rh</span><span class="artist-name-full">Radiohead</span>
+    <span class="tooltip">Radiohead (Alternative Innovators)</span>
+  </div>
+  <div class="table-cell group-16 clickable-artist" data-artist-search-term="Björk">
+    <span class="artist-symbol">Bj</span><span class="artist-name-full">Björk</span>
+    <span class="tooltip">Björk (Experimental Pop)</span>
+  </div>
+  <div class="table-cell group-17 clickable-artist" data-artist-search-term="D'Angelo_(musician)">
+    <span class="artist-symbol">DA</span><span class="artist-name-full">D'Angelo</span>
+    <span class="tooltip">D'Angelo (Neo-Soul)</span>
+  </div>
+  <div class="table-cell group-18 collab clickable-artist" data-artist-search-term="Dr._Dre">
+    <span class="artist-symbol">DrD</span><span class="artist-name-full">Dr. Dre</span>
+    <span class="tooltip">Dr. Dre (Producer/Artist)</span>
+  </div>
+
+  <div class="table-cell group-1 clickable-artist" data-artist-search-term="Gary_Clark_Jr.">
+    <span class="artist-symbol">Gcj</span><span class="artist-name-full">G. Clark Jr.</span>
+    <span class="tooltip">Gary Clark Jr. (Modern Blues Rock)</span>
+  </div>
+  <div class="table-cell group-2 clickable-artist" data-artist-search-term="Norah_Jones">
+    <span class="artist-symbol">Nj</span><span class="artist-name-full">N. Jones</span>
+    <span class="tooltip">Norah Jones (Jazz/Pop Vocalist)</span>
+  </div>
+  <div class="table-cell group-3 clickable-artist" data-artist-search-term="Coldplay">
+    <span class="artist-symbol">C</span><span class="artist-name-full">Coldplay</span>
+    <span class="tooltip">Coldplay (Alternative/Pop Rock)</span>
+  </div>
+  <div class="table-cell group-4 clickable-artist" data-artist-search-term="Foo_Fighters">
+    <span class="artist-symbol">Ff</span><span class="artist-name-full">Foo Fighters</span>
+    <span class="tooltip">Foo Fighters (Modern Rock)</span>
+  </div>
+  <div class="table-cell group-5 clickable-artist" data-artist-search-term="Amy_Winehouse">
+    <span class="artist-symbol">Aw</span><span class="artist-name-full">A. Winehouse</span>
+    <span class="tooltip">Amy Winehouse (Soul/Jazz Revival)</span>
+  </div>
+  <div class="table-cell group-6 clickable-artist" data-artist-search-term="Beyoncé">
+    <span class="artist-symbol">B</span><span class="artist-name-full">Beyoncé</span>
+    <span class="tooltip">Beyoncé (Pop/R&B Icon)</span>
+  </div>
+  <div class="table-cell group-7 clickable-artist" data-artist-search-term="Justin_Timberlake">
+    <span class="artist-symbol">Jt</span><span class="artist-name-full">J. Timberlake</span>
+    <span class="tooltip">Justin Timberlake (Pop/R&B)</span>
+  </div>
+  <div class="table-cell group-8 clickable-artist" data-artist-search-term="Lady_Gaga">
+    <span class="artist-symbol">Lg</span><span class="artist-name-full">Lady Gaga</span>
+    <span class="tooltip">Lady Gaga (Pop Provocateur)</span>
+  </div>
+  <div class="table-cell group-9 clickable-artist" data-artist-search-term="Rihanna">
+    <span class="artist-symbol">R</span><span class="artist-name-full">Rihanna</span>
+    <span class="tooltip">Rihanna (Pop/R&B/Dancehall)</span>
+  </div>
+  <div class="table-cell group-10 clickable-artist" data-artist-search-term="Kanye_West">
+    <span class="artist-symbol">K</span><span class="artist-name-full">Kanye West</span>
+    <span class="tooltip">Kanye West (Ye) (Hip Hop Innovator)</span>
+  </div>
+  <div class="table-cell group-11 clickable-artist" data-artist-search-term="Eminem">
+    <span class="artist-symbol">E</span><span class="artist-name-full">Eminem</span>
+    <span class="tooltip">Eminem (Rap God)</span>
+  </div>
+  <div class="table-cell group-12 clickable-artist" data-artist-search-term="System_of_a_Down">
+    <span class="artist-symbol">SoaD</span><span class="artist-name-full">SOAD</span>
+    <span class="tooltip">System of a Down (Alternative Metal)</span>
+  </div>
+  <div class="table-cell group-13 clickable-artist" data-artist-search-term="Kendrick_Lamar">
+    <span class="artist-symbol">Kl</span><span class="artist-name-full">K. Lamar</span>
+    <span class="tooltip">Kendrick Lamar (Lyrical Hip Hop)</span>
+  </div>
+  <div class="table-cell group-14 clickable-artist" data-artist-search-term="Skrillex">
+    <span class="artist-symbol">Skx</span><span class="artist-name-full">Skrillex</span>
+    <span class="tooltip">Skrillex (Dubstep/EDM)</span>
+  </div>
+  <div class="table-cell group-15 clickable-artist" data-artist-search-term="Arctic_Monkeys">
+    <span class="artist-symbol">Am</span><span class="artist-name-full">Arctic Monkeys</span>
+    <span class="tooltip">Arctic Monkeys (Indie Rock)</span>
+  </div>
+  <div class="table-cell group-16 clickable-artist" data-artist-search-term="Taylor_Swift">
+    <span class="artist-symbol">Ts</span><span class="artist-name-full">T. Swift</span>
+    <span class="tooltip">Taylor Swift (Pop Megastar)</span>
+  </div>
+  <div class="table-cell group-17 clickable-artist" data-artist-search-term="Bruno_Mars">
+    <span class="artist-symbol">BrM</span><span class="artist-name-full">B. Mars</span>
+    <span class="tooltip">Bruno Mars (Pop/Funk/Soul)</span>
+  </div>
+  <div class="table-cell group-18 clickable-artist" data-artist-search-term="Billie_Eilish">
+    <span class="artist-symbol">Be</span><span class="artist-name-full">B. Eilish</span>
+    <span class="tooltip">Billie Eilish (Modern Pop Innovator)</span>
+  </div>
+</div>
+
+<h2 style="margin-top: 40px;">Key Influencers / Producers</h2>
+<div class="lanthanide-series">
+  <div class="table-cell clickable-artist" data-artist-search-term="Muddy_Waters">
+    <span class="artist-symbol">Mw</span><span class="artist-name-full">M. Waters</span>
+    <span class="tooltip">Muddy Waters (Blues Influence)</span>
+  </div>
+  <div class="table-cell clickable-artist" data-artist-search-term="Duke_Ellington">
+    <span class="artist-symbol">De</span><span class="artist-name-full">D. Ellington</span>
+    <span class="tooltip">Duke Ellington (Jazz Composer)</span>
+  </div>
+  <div class="table-cell clickable-artist" data-artist-search-term="Bob_Dylan">
+    <span class="artist-symbol">Bd</span><span class="artist-name-full">B. Dylan</span>
+    <span class="tooltip">Bob Dylan (Songwriting Legend)</span>
+  </div>
+  <div class="table-cell clickable-artist" data-artist-search-term="Marvin_Gaye">
+    <span class="artist-symbol">Mg</span><span class="artist-name-full">M. Gaye</span>
+    <span class="tooltip">Marvin Gaye (Soul Innovator)</span>
+  </div>
+  <div class="table-cell collab clickable-artist" data-artist-search-term="George_Martin">
+    <span class="artist-symbol">GM</span><span class="artist-name-full">G. Martin</span>
+    <span class="tooltip">George Martin (Producer - The Beatles)</span>
+  </div>
+  <div class="table-cell clickable-artist" data-artist-search-term="Quincy_Jones">
+    <span class="artist-symbol">QJ</span><span class="artist-name-full">Q. Jones</span>
+    <span class="tooltip">Quincy Jones (Producer Extraordinaire)</span>
+  </div>
+  <div class="table-cell clickable-artist" data-artist-search-term="Brian_Eno">
+    <span class="artist-symbol">BE</span><span class="artist-name-full">B. Eno</span>
+    <span class="tooltip">Brian Eno (Ambient/Producer)</span>
+  </div>
+  <div class="table-cell clickable-artist" data-artist-search-term="Rick_Rubin">
+    <span class="artist-symbol">RR</span><span class="artist-name-full">R. Rubin</span>
+    <span class="tooltip">Rick Rubin (Producer - Diverse Genres)</span>
+  </div>
+  <div class="table-cell clickable-artist" data-artist-search-term="Pharrell_Williams">
+    <span class="artist-symbol">PhW</span><span class="artist-name-full">P. Williams</span>
+    <span class="tooltip">Pharrell Williams (Producer/Artist)</span>
+  </div>
+  <div class="table-cell clickable-artist" data-artist-search-term="Timbaland">
+    <span class="artist-symbol">Tim</span><span class="artist-name-full">Timbaland</span>
+    <span class="tooltip">Timbaland (Hip Hop/R&B Producer)</span>
+  </div>
+  <div class="table-cell clickable-artist" data-artist-search-term="Lee_Scratch_Perry"> <span class="artist-symbol">LSP</span><span class="artist-name-full">L.S. Perry</span>
+    <span class="tooltip">Lee "Scratch" Perry (Reggae/Dub Producer)</span>
+  </div>
+  <div class="table-cell clickable-artist" data-artist-search-term="J_Dilla">
+    <span class="artist-symbol">JDL</span><span class="artist-name-full">J Dilla</span>
+    <span class="tooltip">J Dilla (Influential Hip Hop Producer)</span>
+  </div>
+  <div class="table-cell collab clickable-artist" data-artist-search-term="The_Neptunes">
+    <span class="artist-symbol">NP</span><span class="artist-name-full">Neptunes</span>
+    <span class="tooltip">The Neptunes (Production Duo)</span>
+  </div>
+   <div class="table-cell clickable-artist" data-artist-search-term="Max_Martin">
+    <span class="artist-symbol">MaxM</span><span class="artist-name-full">M. Martin</span>
+    <span class="tooltip">Max Martin (Pop Songwriter/Producer)</span>
+  </div>
+  <div class="table-cell clickable-artist" data-artist-search-term="Aphex_Twin">
+    <span class="artist-symbol">ApT</span><span class="artist-name-full">Aphex Twin</span>
+    <span class="tooltip">Aphex Twin (Electronic Innovator)</span>
+  </div>
+</div>
+
+<h2 style="margin-top: 30px;">Unique Innovators / Cross-Genre Artists</h2>
+<div class="actinide-series">
+  <div class="table-cell clickable-artist" data-artist-search-term="Howlin'_Wolf">
+    <span class="artist-symbol">Hwlf</span><span class="artist-name-full">Howlin' Wolf</span>
+    <span class="tooltip">Howlin' Wolf (Unique Blues Voice)</span>
+  </div>
+  <div class="table-cell clickable-artist" data-artist-search-term="Thelonious_Monk">
+    <span class="artist-symbol">Tm</span><span class="artist-name-full">T. Monk</span>
+    <span class="tooltip">Thelonious Monk (Unique Jazz Pianist)</span>
+  </div>
+  <div class="table-cell clickable-artist" data-artist-search-term="David_Bowie">
+    <span class="artist-symbol">Db</span><span class="artist-name-full">D. Bowie</span>
+    <span class="tooltip">David Bowie (Art Rock Chameleon)</span>
+  </div>
+  <div class="table-cell clickable-artist" data-artist-search-term="Frank_Zappa">
+    <span class="artist-symbol">Fz</span><span class="artist-name-full">F. Zappa</span>
+    <span class="tooltip">Frank Zappa (Experimental Rock)</span>
+  </div>
+  <div class="table-cell clickable-artist" data-artist-search-term="Captain_Beefheart">
+    <span class="artist-symbol">Ct</span><span class="artist-name-full">Captain Beefheart</span>
+    <span class="tooltip">Captain Beefheart (Avant-Garde)</span>
+  </div>
+  <div class="table-cell clickable-artist" data-artist-search-term="Tom_Waits">
+    <span class="artist-symbol">Tw</span><span class="artist-name-full">T. Waits</span>
+    <span class="tooltip">Tom Waits (Unique Songwriter)</span>
+  </div>
+  <div class="table-cell clickable-artist" data-artist-search-term="Kate_Bush">
+    <span class="artist-symbol">Ktb</span><span class="artist-name-full">K. Bush</span>
+    <span class="tooltip">Kate Bush (Art Pop Innovator)</span>
+  </div>
+  <div class="table-cell clickable-artist" data-artist-search-term="Lil_Nas_X">
+    <span class="artist-symbol">LNX</span><span class="artist-name-full">Lil Nas X</span>
+    <span class="tooltip">Lil Nas X (Genre-Blending Pop)</span>
+  </div>
+  <div class="table-cell collab clickable-artist" data-artist-search-term="Silk_Sonic">
+    <span class="artist-symbol">SS</span><span class="artist-name-full">Silk Sonic</span>
+    <span class="tooltip">Silk Sonic (Retro Soul/Funk Collab)</span>
+  </div>
+  <div class="table-cell clickable-artist" data-artist-search-term="Outkast">
+    <span class="artist-symbol">Out</span><span class="artist-name-full">OutKast</span>
+    <span class="tooltip">OutKast (Innovative Hip Hop Duo)</span>
+  </div>
+  <div class="table-cell clickable-artist" data-artist-search-term="Missy_Elliott">
+    <span class="artist-symbol">MisE</span><span class="artist-name-full">M. Elliott</span>
+    <span class="tooltip">Missy Elliott (Hip Hop Innovator)</span>
+  </div>
+  <div class="table-cell unstable clickable-artist" data-artist-search-term="Gotye">
+    <span class="artist-symbol">Got</span><span class="artist-name-full">Gotye</span>
+    <span class="tooltip">Gotye (Somebody That I Used To Know - Unique Hit)</span>
+  </div>
+  <div class="table-cell clickable-artist" data-artist-search-term="Anderson_.Paak"> <span class="artist-symbol">AnP</span><span class="artist-name-full">Anderson .Paak</span>
+    <span class="tooltip">Anderson .Paak (Funk/Soul/Hip Hop)</span>
+  </div>
+  <div class="table-cell clickable-artist" data-artist-search-term="St._Vincent_(musician)">
+    <span class="artist-symbol">StV</span><span class="artist-name-full">St. Vincent</span>
+    <span class="tooltip">St. Vincent (Art Rock/Pop)</span>
+  </div>
+   <div class="table-cell clickable-artist" data-artist-search-term="FKA_Twigs">
+    <span class="artist-symbol">FKAT</span><span class="artist-name-full">FKA Twigs</span>
+    <span class="tooltip">FKA Twigs (Experimental R&B/Electronic)</span>
+  </div>
+</div>
+
+<div id="wikipedia-modal" class="modal-overlay">
+  <div class="modal-content">
+    <button id="modal-close-button" class="modal-close-button">&times;</button>
+    <iframe id="wikipedia-iframe" src="about:blank" title="Wikipedia Article"></iframe>
+  </div>
+</div>
+
+<p style="text-align:center; font-size:0.9em; color: #bdc3c7; margin-top: 40px; max-width: 800px;">
+  Click on an artist to view their Wikipedia page. This Periodic Table of Music is a conceptual representation. Artist placement, genre categorization, and era definitions are subjective and intended for a fun, visual exploration of music history. "Unstable" elements often represent artists with a singular massive hit or unique, fleeting impact. "Collabs" denote significant collaborations or groups. The Lanthanide/Actinide equivalents highlight key influencers, producers, and unique innovators. Approximately 118 artist entries are included to match the traditional periodic table element count.
+</p>
+
+<script>
+  // Wait for the DOM to be fully loaded before attaching event listeners
+  document.addEventListener('DOMContentLoaded', () => {
+    const modalOverlay = document.getElementById('wikipedia-modal');
+    const wikipediaIframe = document.getElementById('wikipedia-iframe');
+    const closeModalButton = document.getElementById('modal-close-button');
+
+    // Function to show the modal with the Wikipedia page
+    function showArtistInfo(searchTerm) {
+      if (!searchTerm) {
+        console.error('No search term provided for artist.');
+        return;
+      }
+      // Construct Wikipedia URL. encodeURIComponent handles spaces and special characters.
+      const wikipediaUrl = `https://en.wikipedia.org/wiki/${encodeURIComponent(searchTerm)}`;
+      wikipediaIframe.src = wikipediaUrl;
+      modalOverlay.style.display = 'flex'; // Use flex to utilize align/justify center
+    }
+
+    // Add event listeners to all clickable artist cells
+    const artistCells = document.querySelectorAll('.clickable-artist');
+    artistCells.forEach(cell => {
+      const searchTerm = cell.dataset.artistSearchTerm;
+      if (searchTerm) {
+        cell.addEventListener('click', () => {
+          // Check if the click target is not the tooltip itself if it were interactive
+          // For this setup, direct click on cell is fine
+          showArtistInfo(searchTerm);
+        });
+      } else {
+        // Optional: Log if a clickable cell is missing its search term
+        // console.warn('Clickable artist cell is missing data-artist-search-term:', cell);
+      }
+    });
+
+    // Function to close the modal
+    function closeModal() {
+      modalOverlay.style.display = 'none';
+      wikipediaIframe.src = 'about:blank'; // Clear iframe to stop loading/playing media
+    }
+
+    // Event listener for the close button
+    if (closeModalButton) {
+      closeModalButton.addEventListener('click', closeModal);
+    }
+
+    // Optional: Close modal if user clicks outside the modal content
+    // Be careful with this, as clicks inside the iframe might also be interpreted as clicks on overlay
+    // A more robust solution would check if event.target is exactly modalOverlay
+    modalOverlay.addEventListener('click', (event) => {
+      if (event.target === modalOverlay) { // Only close if the overlay itself is clicked
+        closeModal();
+      }
+    });
+
+    // Prevent closing modal when clicking inside the modal content (but not on the close button)
+    const modalContent = modalOverlay.querySelector('.modal-content');
+    if (modalContent) {
+        modalContent.addEventListener('click', (event) => {
+            event.stopPropagation(); // Prevents click from bubbling up to modalOverlay
+        });
+    }
+  });
+</script>
+
+</body>
+</html>
